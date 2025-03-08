@@ -5,23 +5,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chess Bot</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.min.js"></script>
+    <script src="https://raw.githubusercontent.com/niklasf/stockfish.js/main/src/stockfish.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
     <style>
         body { text-align: center; font-family: Arial, sans-serif; }
-        button { padding: 10px 20px; font-size: 18px; }
+        #board { width: 400px; margin: 20px auto; }
+        button { padding: 10px 20px; font-size: 18px; margin: 10px; }
     </style>
 </head>
 <body>
-    <h1>Welcome to Chess Bot</h1>
-    <button onclick="startGame()">Play Chess</button>
+    <h1>Play Chess</h1>
+    <div id="board"></div>
+    <button onclick="resetGame()">Restart Game</button>
 
     <script>
         let tg = window.Telegram.WebApp;
         tg.expand(); // Expand the mini app
 
-        function startGame() {
-            alert("Starting Chess Game...");
-            // Here we will integrate Stockfish in the next steps
+        let board, game = new Chess();
+        let stockfish = new Worker("https://raw.githubusercontent.com/niklasf/stockfish.js/main/src/stockfish.js");
+
+        function onDrop(source, target) {
+            if (!game.move({ from: source, to: target, promotion: 'q' })) return 'snapback';
+            board.position(game.fen());
+
+            setTimeout(() => {
+                stockfish.postMessage("position fen " + game.fen());
+                stockfish.postMessage("go depth 15");
+            }, 500);
         }
+
+        stockfish.onmessage = function(event) {
+            let bestMove = event.data.match(/bestmove\s(\S+)/);
+            if (bestMove) {
+                game.move(bestMove[1], { sloppy: true });
+                board.position(game.fen());
+            }
+        };
+
+        function resetGame() {
+            game.reset();
+            board.start();
+        }
+
+        board = Chessboard('board', {
+            draggable: true,
+            dropOffBoard: 'snapback',
+            position: 'start',
+            onDrop: onDrop
+        });
     </script>
 </body>
 </html>
