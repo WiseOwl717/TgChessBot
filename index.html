@@ -3,47 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chess Bot</title>
+    <title>Telegram Chess Bot</title>
+    
+    <!-- Telegram Mini App SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Chessboard.js & Chess.js Libraries -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.2/chess.min.js"></script>
-    <script src="https://raw.githubusercontent.com/niklasf/stockfish.js/main/src/stockfish.js"></script>
+
+    <!-- CSS for Chessboard -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/chessboard-js/1.0.0/chessboard-1.0.0.min.css">
+    
     <style>
         body { text-align: center; font-family: Arial, sans-serif; }
-        #board { width: 400px; margin: 20px auto; }
+        #board { width: 350px; margin: 20px auto; }
         button { padding: 10px 20px; font-size: 18px; margin: 10px; }
     </style>
 </head>
 <body>
-    <h1>Play Chess</h1>
+    <h1>Chess Bot</h1>
     <div id="board"></div>
     <button onclick="resetGame()">Restart Game</button>
 
     <script>
         let tg = window.Telegram.WebApp;
-        tg.expand(); // Expand the mini app
+        tg.expand(); // Expand Mini App
 
         let board, game = new Chess();
-        let stockfish = new Worker("https://raw.githubusercontent.com/niklasf/stockfish.js/main/src/stockfish.js");
 
         function onDrop(source, target) {
-            if (!game.move({ from: source, to: target, promotion: 'q' })) return 'snapback';
+            let move = game.move({ from: source, to: target, promotion: 'q' });
+
+            if (!move) return 'snapback';
             board.position(game.fen());
 
-            setTimeout(() => {
-                stockfish.postMessage("position fen " + game.fen());
-                stockfish.postMessage("go depth 15");
-            }, 500);
+            setTimeout(() => makeAIMove(), 500);
         }
 
-        stockfish.onmessage = function(event) {
-            let bestMove = event.data.match(/bestmove\s(\S+)/);
-            if (bestMove) {
-                game.move(bestMove[1], { sloppy: true });
-                board.position(game.fen());
-            }
-        };
+        function makeAIMove() {
+            let moves = game.moves();
+            if (moves.length === 0) return;
+            
+            let bestMove = moves[Math.floor(Math.random() * moves.length)];
+            game.move(bestMove);
+            board.position(game.fen());
+        }
 
         function resetGame() {
             game.reset();
