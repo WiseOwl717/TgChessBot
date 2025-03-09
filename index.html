@@ -23,7 +23,9 @@
     <script>
         var board;
         var game = new Chess();
-        var stockfish = new Worker("stockfish.js"); // Load Stockfish
+        
+        // Load Stockfish from GitHub
+        var stockfish = new Worker("stockfish.js"); 
 
         function onDragStart(source, piece) {
             if (game.game_over() || piece.search(/^b/) !== -1) {
